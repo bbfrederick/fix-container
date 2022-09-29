@@ -8,25 +8,52 @@ ENV TZ=America/New_York
 RUN apt-get update && \
     apt-get install -y tzdata && \
     apt-get install -y --no-install-recommends \
+                    autoconf \
                     curl \
                     wget \
                     bzip2 \
                     ca-certificates \
                     xvfb \
                     build-essential \
-                    autoconf \
                     libtool \
                     gnupg \
                     pkg-config \
                     lsb-release \
-                    git
+                    git \
+                    bc \
+                    dc \
+                    file \
+                    libfontconfig1 \
+                    libfreetype6 \
+                    libgl1-mesa-dev \
+                    libgl1-mesa-dri \
+                    libglu1-mesa-dev \
+                    libgomp1 \
+                    libice6 \
+                    libopenblas-base \
+                    libxcursor1 \
+                    libxft2 \
+                    libxinerama1 \
+                    libxrandr2 \
+                    libxrender1 \
+                    libxt6 \
+                    nano \
+                    sudo
 
+# Install FSL
+RUN curl -sSL https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.5.1-centos7_64.tar.gz && \
+    tar -xvzf fsl-6.0.5.1-centos7_64.tar.gz -C /opt/ && \
+    rm fsl-6.0.5.1-centos7_64.tar.gz
 
 RUN apt-get install -y octave
+RUN apt-get install -y liboctave-dev
 
-RUN octave --eval 'pkg install -auto -forge io; pkg install -auto -forge statistics; \
-    pkg install -auto -forge specfun; pkg install -auto -forge general; \
-    pkg install -auto -forge control; pkg install -auto -forge signal;'
+RUN octave --eval 'pkg install -forge io;'
+RUN octave --eval 'pkg install -forge statistics;' 
+RUN octave --eval 'pkg install -forge general;'
+RUN octave --eval 'pkg install -forge control;'
+RUN octave --eval 'pkg install -forge signal;'
+#RUN octave --eval 'pkg install -forge specfun;'
 
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
