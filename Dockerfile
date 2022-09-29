@@ -9,6 +9,7 @@ RUN apt-get update && \
     apt-get install -y tzdata && \
     apt-get install -y --no-install-recommends \
                     curl \
+                    wget \
                     bzip2 \
                     ca-certificates \
                     xvfb \
@@ -21,7 +22,7 @@ RUN apt-get update && \
                     git
 
 
-RUN apt-get install -y octave=3.6.4
+RUN apt-get install -y octave
 
 RUN octave --eval 'pkg install -auto -forge io; pkg install -auto -forge statistics; \
     pkg install -auto -forge specfun; pkg install -auto -forge general; \
@@ -33,9 +34,9 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 ENV IS_DOCKER_8395080871=1
 
 RUN git clone https://github.com/jelman/FSL_FIX.git
-RUN cd /FSL_FIX; ./setup_octave.sh
+#RUN cd /FSL_FIX; ./setup_octave.sh
 
-RUN /FSL_FIX/setup_octave.sh
+#RUN /FSL_FIX/setup_octave.sh
 
 RUN ldconfig
 #ENTRYPOINT ["/bin/bash"]
