@@ -1,86 +1,111 @@
-# Use Ubuntu 20.04 LTS
-FROM ubuntu:20.04
+FROM ubuntu:bionic-20201119
 
-# Prepare environment
-RUN df -h
-ARG DEBIAN_FRONTEND=noninteractive
-ENV TZ=America/New_York
-RUN apt-get update && \
-    apt-get install -y tzdata && \
-    apt-get install -y --no-install-recommends \
-                    autoconf \
-                    curl \
-                    wget \
-                    bzip2 \
-                    ca-certificates \
-                    xvfb \
-                    build-essential \
-                    libtool \
-                    gnupg \
-                    pkg-config \
-                    lsb-release \
-                    git \
-                    bc \
-                    dc \
-                    file \
-                    libfontconfig1 \
-                    libfreetype6 \
-                    libgl1-mesa-dev \
-                    libgl1-mesa-dri \
-                    libglu1-mesa-dev \
-                    libgomp1 \
-                    libice6 \
-                    libopenblas-base \
-                    libxcursor1 \
-                    libxft2 \
-                    libxinerama1 \
-                    libxrandr2 \
-                    libxrender1 \
-                    libxt6 \
-                    nano \
-                    sudo
+# Install fundamental packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    lsb-core \
+    bsdtar \
+    zip \
+    unzip \
+    gzip \
+    gnupg \
+    curl \
+    jq \
+    wget \
+    python-pip \
+    software-properties-common && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    
+#############################################
+# Download and install R and necessary packages
 
-# Install FSL
-RUN curl -sSLO https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.5.1-centos7_64.tar.gz && \
-    tar -xvzf fsl-6.0.5.1-centos7_64.tar.gz -C /opt/ && \
-    rm fsl-6.0.5.1-centos7_64.tar.gz
+ENV TZ=Europe/Rome
+ENV LC_ALL C.UTF-8
+ENV LANG C.UTF-8
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
+    apt-get update && apt-get install -y --no-install-recommends r-base r-cran-devtools \
+        libblas-dev liblapack-dev gfortran r-cran-catools r-cran-gplots g++ && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+    Rscript -e 'require(devtools); install_version("kernlab", version="0.9-24")' && \
+    Rscript -e 'require(devtools); install_version("ROCR", version="1.0-7")' && \
+    Rscript -e 'require(devtools); install_version("class", version="7.3-14")' && \
+    Rscript -e 'require(devtools); install_version("mvtnorm", version="1.0-8")' && \
+    Rscript -e 'require(devtools); install_version("multcomp", version="1.4-8")' && \
+    Rscript -e 'require(devtools); install_version("coin", version="1.2-2")' && \
+    Rscript -e 'require(devtools); install_version("party", version="1.0-25")' && \
+    Rscript -e 'require(devtools); install_version("e1071", version="1.6-7")' && \
+    Rscript -e 'require(devtools); install_version("randomForest", version="4.6-12")'
 
-# FSL setup
-ENV FSLDIR=/opt/fsl
-RUN . ${FSLDIR}/etc/fslconf/fsl.sh
-ENV PATH=${FSLDIR}/bin:${PATH}
 
-# install octave
-RUN apt-get install -y octave
-RUN apt-get install -y liboctave-dev
+#############################################
+# Download and install Matlab Compiler Runtime
 
-RUN octave --eval 'pkg install -forge io;'
-RUN octave --eval 'pkg install -forge statistics;' 
-RUN octave --eval 'pkg install -forge general;'
-RUN octave --eval 'pkg install -forge control;'
-RUN octave --eval 'pkg install -forge signal;'
-RUN curl -sSL https://sourceforge.net/projects/octave/files/Octave%20Forge%20Packages/Individual%20Package%20Releases/specfun-1.0.9.tar.gz/download -o specfun-1.0.9.tar.gz
-RUN octave --eval 'pkg install specfun-1.0.9.tar.gz;'
-RUN rm specfun-1.0.9.tar.gz
-COPY ./octaverc .octaverc
+RUN wget https://ssd.mathworks.com/supportfiles/downloads/R2017b/deployment_files/R2017b/installers/glnxa64/MCR_R2017b_glnxa64_installer.zip && \
+    mkdir /opt/mcr && mkdir /mcr-install && cd mcr-install && \
+    unzip /MCR_R2017b_glnxa64_installer.zip && \
+    rm -rf /MCR_R2017b_glnxa64_installer.zip && \
+    ./install -destinationFolder /opt/mcr -agreeToLicense yes -mode silent && \
+    cd / && rm -rf mcr-install
 
-# install R
-RUN apt-get install -y --no-install-recommends r-base
-RUN Rscript -e 'install.packages(c("kernlab","ROCR","class","party","e1071","randomForest"), repos="http://cran.r-project.org" )'
+ENV FSL_FIX_MCRROOT=/opt/mcr
 
-# clean up a bit
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ENV IS_DOCKER_8395080871=1
+#############################################
+# Download and install FSL 5 + OpenJDK
 
-# now get FSL_FIX
-RUN cd /opt; git clone https://github.com/jelman/FSL_FIX.git
+# Pre-cache neurodebian key
+COPY ./neurodebian.gpg /usr/local/etc/neurodebian.gpg
 
-# now jam in a correct configuration file
-COPY settings.sh /opt/FSL_FIX
+# Installing Neurodebian packages (FSL)
+RUN curl -sSL "http://neuro.debian.net/lists/$( lsb_release -c | cut -f2 ).us-ca.full" >> /etc/apt/sources.list.d/neurodebian.sources.list && \
+    apt-key add /usr/local/etc/neurodebian.gpg && \
+    (apt-key adv --refresh-keys --keyserver hkp://ha.pool.sks-keyservers.net 0xA5D32F012649A5A9 || true)
 
-#RUN ldconfig
-#ENTRYPOINT ["/bin/bash"]
+#RUN apt-get update && apt-get install -y dirmngr && \
+#    wget -O- http://neuro.debian.net/lists/bionic.de-fzj.full | \
+#    tee /etc/apt/sources.list.d/neurodebian.sources.list && \
+#    apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xA5D32F012649A5A9 && \
+#    apt-get update && apt-get install -y fsl-core fsl-atlases openjdk-8-jdk && \
+#    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN apt-get update && apt-get install -y dirmngr && \
+    apt-get update && apt-get install -y fsl-core fsl-atlases openjdk-8-jdk && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Configure FSL environment
+ENV FSLDIR=/usr/share/fsl/5.0
+ENV FSL_DIR="${FSLDIR}"
+ENV FSLOUTPUTTYPE=NIFTI_GZ
+ENV PATH=/usr/lib/fsl/5.0:$PATH
+ENV FSLMULTIFILEQUIT=TRUE
+ENV POSSUMDIR=/usr/share/fsl/5.0
+ENV LD_LIBRARY_PATH=/usr/lib/fsl/5.0:$LD_LIBRARY_PATH
+ENV FSLTCLSH=/usr/bin/tclsh
+ENV FSLWISH=/usr/bin/wish
+ENV FSLOUTPUTTYPE=NIFTI_GZ
+
+#############################################
+# Download and install FIX
+
+RUN wget -v http://www.fmrib.ox.ac.uk/~steve/ftp/fix.tar.gz && \
+    mkdir -p /tmp/fix && \
+    cd /tmp/fix && \
+    tar zxvf /fix.tar.gz --exclude="compiled/Darwin/" && \
+    mv /tmp/fix/fix* /opt/fix && \
+    rm /fix.tar.gz && \
+    cd / && \
+    rm -rf /tmp/* /var/tmp/*
+
+ENV FSL_FIXDIR=/opt/fix
+ENV PATH "$PATH:/opt/fix"
+
+
+#############################################
+# Add non-root user
+
+RUN useradd --create-home --shell /bin/bash fsluser
+USER fsluser
+WORKDIR /home/fsluser
+ENV USER=fsluser
 
 ARG VERSION
 ARG BUILD_DATE
