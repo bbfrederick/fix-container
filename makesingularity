@@ -1,4 +1,4 @@
 #!/bin/bash
 
-singularity build fslfix.sif docker://ingmatman/fslfix:latest
+singularity build fslfix.sif docker://fredericklab/fslfix:latest
 
