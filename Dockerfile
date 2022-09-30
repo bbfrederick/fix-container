@@ -41,9 +41,15 @@ RUN apt-get update && \
                     sudo
 
 # Install FSL
-RUN curl -sSL https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.5.1-centos7_64.tar.gz && \
+RUN curl -sSLO https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.5.1-centos7_64.tar.gz && \
     tar -xvzf fsl-6.0.5.1-centos7_64.tar.gz -C /opt/ && \
     rm fsl-6.0.5.1-centos7_64.tar.gz
+
+# FSL setup
+ENV FSLDIR=/opt/fsl
+RUN . ${FSLDIR}/etc/fslconf/fsl.sh
+ENV PATH=${FSLDIR}/bin:${PATH}
+
 
 RUN apt-get install -y octave
 RUN apt-get install -y liboctave-dev
@@ -53,19 +59,30 @@ RUN octave --eval 'pkg install -forge statistics;'
 RUN octave --eval 'pkg install -forge general;'
 RUN octave --eval 'pkg install -forge control;'
 RUN octave --eval 'pkg install -forge signal;'
-#RUN octave --eval 'pkg install -forge specfun;'
+RUN curl -sSL https://sourceforge.net/projects/octave/files/Octave%20Forge%20Packages/Individual%20Package%20Releases/specfun-1.0.9.tar.gz/download -o specfun-1.0.9.tar.gz
+RUN octave --eval 'pkg install specfun-1.0.9.tar.gz;'
+RUN rm specfun-1.0.9.tar.gz
 
+# install R
+#RUN `echo deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran35/` > /etc/apt/sources.list
+#RUN apt-get update
+RUN apt-get install -y --no-install-recommends r-base
+RUN Rscript -e 'install.packages(c("kernlab","ROCR","class","party","e1071","randomForest"), repos="http://cran.r-project.org" )'
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ENV IS_DOCKER_8395080871=1
 
 RUN git clone https://github.com/jelman/FSL_FIX.git
+
+# now jam in a correct configuration file
+
+
 #RUN cd /FSL_FIX; ./setup_octave.sh
 
 #RUN /FSL_FIX/setup_octave.sh
 
-RUN ldconfig
+#RUN ldconfig
 #ENTRYPOINT ["/bin/bash"]
 
 ARG VERSION
