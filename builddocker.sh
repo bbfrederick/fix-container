@@ -6,7 +6,7 @@ set -ex
 # docker hub username
 USERNAME=fredericklab
 # image name
-IMAGE=fix-container
+IMAGE=fslfix
 
 # ensure we're up to date
 git pull

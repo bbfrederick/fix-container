@@ -112,7 +112,7 @@ ARG BUILD_DATE
 ARG VCS_REF
 
 LABEL org.label-schema.build-date=$BUILD_DATE \
-      org.label-schema.name="fix-container" \
+      org.label-schema.name="fslfix" \
       org.label-schema.description="fix container" \
       org.label-schema.url="http://nirs-fmri.net" \
       org.label-schema.vcs-ref=$VCS_REF \
