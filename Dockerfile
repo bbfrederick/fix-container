@@ -50,7 +50,7 @@ ENV FSLDIR=/opt/fsl
 RUN . ${FSLDIR}/etc/fslconf/fsl.sh
 ENV PATH=${FSLDIR}/bin:${PATH}
 
-
+# install octave
 RUN apt-get install -y octave
 RUN apt-get install -y liboctave-dev
 
@@ -62,25 +62,22 @@ RUN octave --eval 'pkg install -forge signal;'
 RUN curl -sSL https://sourceforge.net/projects/octave/files/Octave%20Forge%20Packages/Individual%20Package%20Releases/specfun-1.0.9.tar.gz/download -o specfun-1.0.9.tar.gz
 RUN octave --eval 'pkg install specfun-1.0.9.tar.gz;'
 RUN rm specfun-1.0.9.tar.gz
+COPY ./octaverc .octaverc
 
 # install R
-#RUN `echo deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran35/` > /etc/apt/sources.list
-#RUN apt-get update
 RUN apt-get install -y --no-install-recommends r-base
 RUN Rscript -e 'install.packages(c("kernlab","ROCR","class","party","e1071","randomForest"), repos="http://cran.r-project.org" )'
 
+# clean up a bit
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ENV IS_DOCKER_8395080871=1
 
-RUN git clone https://github.com/jelman/FSL_FIX.git
+# now get FSL_FIX
+RUN cd /opt; git clone https://github.com/jelman/FSL_FIX.git
 
 # now jam in a correct configuration file
-
-
-#RUN cd /FSL_FIX; ./setup_octave.sh
-
-#RUN /FSL_FIX/setup_octave.sh
+COPY settings.sh /opt/FSL_FIX
 
 #RUN ldconfig
 #ENTRYPOINT ["/bin/bash"]
