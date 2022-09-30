@@ -1,0 +1,14 @@
+#!/bin/bash
+# /data_in and /data_out are what the container calls the input and output directories internally
+# INPUTDIRECTORY and OUTPUTDIRECTORY are where they actually are on your computer
+# /opt/fix is where the fix code lives in the container, so the Standard.RData can be found there
+# If you have your own RData file it should be in INPUTDIRECTORY or OUTPUTDIRECTORY
+
+INPUTDIRECTORY=/Users/frederic/Dropbox_PHC/fixinputdata
+OUTPUTDIRECTORY=/Users/frederic/Dropbox_PHC/fixoutputdata
+
+singularity run \
+    --cleanenv \
+    -B ${INPUTDIRECTORY}:/data_in,${OUTPUTDIRECTORY}:/data_out \
+    fslfix.sif \
+        bash -c "fix /data_in/results.ica /opt/fix/training_files/Standard.RData 20"
